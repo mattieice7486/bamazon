@@ -18,10 +18,11 @@ const connection = mysql.createConnection({
 connection.connect(function(err) {
     if (err) throw err;
     console.log("connected as id " + connection.threadId + "\n");
-    readProducts();
+    start();
 });
 
-inquirer.prompt([
+function start() {
+    inquirer.prompt([
 
     {
       type: "input",
@@ -31,59 +32,24 @@ inquirer.prompt([
   
     {
       type: "list",
-      name: "itemInfo",
-      message: "I'm BAM, I'll be your guide to BAMAZON. What item are you interested in?",
-      choices: ["", "", ""]
-    },
-  
-    {
-      type: "checkbox",
-      name: "carryingWhat",
-      message: "What are you carrying in your hands??",
-      choices: ["TV", "Slice of Toast", "Butter Knife"]
-    },
-  
-    {
-      type: "confirm",
-      name: "canLeave",
-      message: "Can you leave now?"
-    },
-  
-    {
-      type: "password",
-      name: "myPassword",
-      message: "Okay fine. You can stay. But only if you say the magic password."
+      name: "itemList",
+      message: "Hello, I'm BAM, I'll be your guide to BAMAZON. Would you like to browse our catalog?",
+      choices: ["yes", "no"]
     }
   
   ]).then(function(user) {
   
-    // If the user guesses the password...
-    if (user.myPassword === "myHouse") {
-  
-      console.log("==============================================");
-      console.log("");
-      console.log("Well a deal's a deal " + user.name);
-      console.log("You can stay as long as you like.");
-      console.log("Just put down the " + user.carryingWhat.join(" and ") + ". It's kind of freaking me out.");
-      console.log("");
-      console.log("==============================================");
-    }
-  
-  
-    // If the user doesn't guess the password...
-    else {
-  
-      console.log("==============================================");
-      console.log("");
-      console.log("Sorry " + user.name);
-      console.log("I'm calling the cops!");
-      console.log("");
-      console.log("==============================================");
-  
-    }
-  });
-  
-  function readProducts() {
+    if (user.itemList === "yes") {
+        catalog();
+      }
+      else {
+        console.log("No problem. Thanks for stopping by!");
+        connection.end();
+      }
+    });
+};
+
+function readProducts() {
     console.log("Selecting all products...\n");
     connection.query("SELECT * FROM products", function(err, res) {
       if (err) throw err;
@@ -91,4 +57,67 @@ inquirer.prompt([
       console.log(res);
       connection.end();
     });
-  }
+}
+
+function catalog() {
+    // query the database for all items being auctioned
+    connection.query("SELECT * FROM products", function(err, results) {
+      if (err) throw err;
+      // once you have the items, prompt the user for which they'd like to bid on
+      inquirer
+        .prompt([
+          {
+            name: "choice",
+            type: "rawlist",
+            choices: function() {
+              var choiceArray = [];
+              for (var i = 0; i < results.length; i++) {
+                choiceArray.push(results[i].product_name);
+              }
+              return choiceArray;
+            },
+            message: "What book would you like to buy?\n"
+          },
+          {
+            name: "bid",
+            type: "input",
+            message: "How many would you like to purchase?"
+          }
+        ])
+        .then(function(answer) {
+          // get the information of the chosen item
+          var chosenItem;
+          for (var i = 0; i < results.length; i++) {
+            if (results[i].product_name === answer.choice) {
+              chosenItem = results[i];
+            }
+          }
+  
+          // determine if bid was high enough
+          if (chosenItem.highest_bid < parseInt(answer.bid)) {
+            // bid was high enough, so update db, let the user know, and start over
+            connection.query(
+              "UPDATE auctions SET ? WHERE ?",
+              [
+                {
+                  highest_bid: answer.bid
+                },
+                {
+                  id: chosenItem.id
+                }
+              ],
+              function(error) {
+                if (error) throw err;
+                console.log("Bid placed successfully!");
+                start();
+              }
+            );
+          }
+          else {
+            // bid wasn't high enough, so apologize and start over
+            console.log("Your bid was too low. Try again...");
+            start();
+          }
+        });
+    });
+}
