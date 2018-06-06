@@ -33,7 +33,7 @@ function start() {
     {
       type: "list",
       name: "itemList",
-      message: "Hello, I'm BAM, I'll be your guide to BAMAZON. Would you like to browse our catalog?",
+      message: `Hello, I'm BAM, I'll be your guide to BAMAZON. Would you like to browse our catalog?`,
       choices: ["yes", "no"]
     }
   
@@ -43,7 +43,7 @@ function start() {
         catalog();
       }
       else {
-        console.log("No problem. Thanks for stopping by!");
+        console.log(`No problem. Thanks for stopping by, ${user.name}!`);
         connection.end();
       }
     });
@@ -63,7 +63,6 @@ function catalog() {
     // query the database for all items being auctioned
     connection.query("SELECT * FROM products", function(err, results) {
       if (err) throw err;
-      // once you have the items, prompt the user for which they'd like to bid on
       inquirer
         .prompt([
           {
@@ -94,13 +93,13 @@ function catalog() {
           }
   
           // determine if bid was high enough
-          if (chosenItem.highest_bid < parseInt(answer.bid)) {
+          if (chosenItem.stock_quantity > parseInt(answer.bid)) {
             // bid was high enough, so update db, let the user know, and start over
             connection.query(
-              "UPDATE auctions SET ? WHERE ?",
+              "UPDATE products SET ? WHERE ?",
               [
                 {
-                  highest_bid: answer.bid
+                  stock_quantity: answer.bid
                 },
                 {
                   id: chosenItem.id
@@ -108,7 +107,7 @@ function catalog() {
               ],
               function(error) {
                 if (error) throw err;
-                console.log("Bid placed successfully!");
+                console.log("Thank you for your Purchase! Your total comes to $" + (chosenItem.price * chosenItem.stock_quantity));
                 start();
               }
             );
