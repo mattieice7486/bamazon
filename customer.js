@@ -4,13 +4,10 @@ const mysql = require("MYSQL");
 const connection = mysql.createConnection({
     host: "localhost",
   
-    // Your port; if not 3306
     port: 3307,
   
-    // Your username
     user: "root",
   
-    // Your password
     password: "root",
     database: "bamazon"
 });
@@ -53,14 +50,12 @@ function readProducts() {
     console.log("Selecting all products...\n");
     connection.query("SELECT * FROM products", function(err, res) {
       if (err) throw err;
-      // Log all results of the SELECT statement
       console.log(res);
       connection.end();
     });
 }
 
 function catalog() {
-    // query the database for all items being auctioned
     connection.query("SELECT * FROM products", function(err, results) {
       if (err) throw err;
       inquirer
@@ -84,7 +79,6 @@ function catalog() {
           }
         ])
         .then(function(answer) {
-          // get the information of the chosen item
           var chosenItem;
           for (var i = 0; i < results.length; i++) {
             if (results[i].product_name === answer.choice) {
@@ -92,9 +86,7 @@ function catalog() {
             }
           }
   
-          // determine if bid was high enough
           if (chosenItem.stock_quantity > parseInt(answer.bid)) {
-            // bid was high enough, so update db, let the user know, and start over
             connection.query(
               "UPDATE products SET ? WHERE ?",
               [
@@ -113,8 +105,7 @@ function catalog() {
             );
           }
           else {
-            // bid wasn't high enough, so apologize and start over
-            console.log("Your bid was too low. Try again...");
+            console.log("Sorry! We don't have enough of that item to fulfill your order!");
             start();
           }
         });
