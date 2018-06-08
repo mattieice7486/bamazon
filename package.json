@@ -4,7 +4,9 @@
   "description": "Virtual storefront using MYSQL and Node",
   "main": "customer.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node customer.js",
+    "watch": "nodemon customer.js"
   },
   "repository": {
     "type": "git",
